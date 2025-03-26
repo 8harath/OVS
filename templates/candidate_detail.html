@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ candidate[1] }} - Candidate Details</title>
+    <style>
+        body {
+            font-family: 'Georgia', serif;
+            line-height: 1.6;
+            color: #333;
+            margin: 0;
+            padding: 0;
+            min-height: 100vh;
+            background-color: #f0f0f0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .container {
+            max-width: 1200px;
+            width: 90%;
+            margin: 2rem;
+            padding: 2rem;
+            background-color: #e6e6e6;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+
+        h1 {
+            font-size: 2.3rem;
+            margin-bottom: 1.5rem;
+            color: #2c3e50;
+            text-align: center;
+        }
+
+        .candidate-detail {
+            display: grid;
+            gap: 2rem;
+            grid-template-columns: 1fr 1fr;
+        }
+
+        .candidate-detail img {
+            width: 100%;
+            max-width: 300px;
+            height: auto;
+            border-radius: 8px;
+            margin: 0 auto;
+            display: block;
+            grid-column: 1 / -1;
+        }
+
+        h2, h3 {
+            color: #2c3e50;
+            margin-top: 1.5rem;
+            text-align: center;
+            grid-column: 1 / -1;
+        }
+
+        ul {
+            padding-left: 1.5rem;
+        }
+
+        .info-section {
+            background-color: #f5f5f5;
+            padding: 1rem;
+            border-radius: 4px;
+            margin-bottom: 1rem;
+            transition: background-color 0.3s ease;
+        }
+
+        .button {
+            display: inline-block;
+            padding: 0.8rem 1.5rem;
+            margin-top: 1rem;
+            background-color: #2c3e50;
+            color: #fff;
+            text-decoration: none;
+            border-radius: 4px;
+            transition: background-color 0.3s ease;
+            border: none;
+            cursor: pointer;
+            font-size: 1rem;
+        }
+
+        .button:hover {
+            background-color: #34495e;
+        }
+
+        .button-container {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 2rem;
+            grid-column: 1 / -1;
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                margin: 1rem;
+                padding: 1.5rem;
+            }
+
+            h1 {
+                font-size: 2rem;
+            }
+
+            .candidate-detail {
+                grid-template-columns: 1fr;
+            }
+
+            .button-container {
+                flex-direction: column;
+            }
+
+            .button {
+                width: 100%;
+                margin-bottom: 1rem;
+                text-align: center;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>{{ candidate[1] }}</h1>
+        <div class="candidate-detail">
+            <img src="{{ url_for('static', filename='images/candidate_photos/' + candidate[3]) }}" alt="{{ candidate[1] }}">
+            <h2>Party: {{ candidate[2] }}</h2>
+            
+            <div class="info-section">
+                <h3>Promises:</h3>
+                <ul>
+                    {% for promise in candidate[4].split('\n') %}
+                    <li>{{ promise }}</li>
+                    {% endfor %}
+                </ul>
+            </div>
+            
+            <div class="info-section">
+                <h3>Assets:</h3>
+                <p>{{ candidate[5] }}</p>
+            </div>
+            
+            <div class="info-section">
+                <h3>Liabilities:</h3>
+                <p>{{ candidate[6] }}</p>
+            </div>
+            
+            <div class="info-section">
+                <h3>Family Background:</h3>
+                <p>{{ candidate[7] }}</p>
+            </div>
+            
+            <div class="info-section">
+                <h3>Political Views:</h3>
+                <p>{{ candidate[8] }}</p>
+            </div>
+            
+            <div class="info-section">
+                <h3>Regional Views:</h3>
+                <p>{{ candidate[9] }}</p>
+            </div>
+            
+            <div class="button-container">
+                <form action="{{ url_for('vote', candidate_id=candidate[0]) }}" method="POST">
+                    <button type="submit" class="button">Vote for {{ candidate[1] }}</button>
+                </form>
+                <a href="{{ url_for('dashboard') }}" class="button">Go Back</a>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

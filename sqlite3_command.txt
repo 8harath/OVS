@@ -1,0 +1,17 @@
+SELECT 
+    v.id AS voter_id,
+    v.name AS voter_name,
+    v.last_name AS voter_last_name,
+    v.voter_id AS voter_unique_id,
+    v.date_of_birth AS voter_dob,
+    v.phone_number AS voter_phone,
+    c.name AS candidate_name,
+    c.party AS candidate_party,
+    vt.timestamp AS vote_time,              -- Changed from v.timestamp to vt.timestamp
+    vt.reference_number AS vote_reference    -- Changed from v.reference_number to vt.reference_number
+FROM 
+    voters v
+JOIN 
+    votes vt ON v.id = vt.voter_id
+JOIN 
+    candidates c ON vt.candidate_id = c.id;

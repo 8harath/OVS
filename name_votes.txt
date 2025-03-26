@@ -1,0 +1,11 @@
+SELECT 'Candidate Name', 'Party', 'Number of Votes';
+SELECT 
+    c.name AS candidate_name,
+    c.party AS candidate_party,
+    COUNT(vt.id) AS number_of_votes
+FROM 
+    candidates c
+LEFT JOIN 
+    votes vt ON c.id = vt.candidate_id
+GROUP BY 
+    c.id;

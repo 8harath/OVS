@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Voter Dashboard - Online Voting System</title>
+    <style>
+        body {
+            font-family: 'Georgia', serif;
+            line-height: 1.6;
+            color: #333;
+            margin: 0;
+            padding: 0;
+            min-height: 100vh;
+            background-color: #f0f0f0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .container {
+            width: 100%; /* Utilize the full width of the page */
+            margin: 2rem 0; /* Top and bottom margin */
+            padding: 2rem;
+            background-color: #e6e6e6;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+
+        h1 {
+            font-size: 2.3rem;
+            margin-bottom: 1.5rem;
+            color: #2c3e50;
+            text-align: center;
+        }
+
+        p {
+            text-align: center;
+            color: #34495e;
+            margin-bottom: 2rem;
+        }
+
+        .candidate-list {
+            display: flex; /* Use Flexbox for layout */
+            justify-content: space-between; /* Space between the candidates */
+            gap: 2rem; /* Gap between candidate cards */
+        }
+
+        .candidate-card {
+            flex: 1; /* Allow the cards to grow equally */
+            background-color: #f5f5f5;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            overflow: hidden;
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+
+        .candidate-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 6px 12px rgba(0, 0, 0, 0.15);
+        }
+
+        .candidate-card img {
+            width: 100%;
+            height: 200px;
+            object-fit: cover;
+        }
+
+        .candidate-card h2 {
+            font-size: 1.5rem;
+            margin: 1rem;
+            color: #2c3e50;
+        }
+
+        .candidate-card p {
+            margin: 0 1rem 1rem;
+            color: #34495e;
+            text-align: left;
+        }
+
+        .candidate-card h3 {
+            font-size: 1.2rem;
+            margin: 1rem;
+            color: #2c3e50;
+        }
+
+        .candidate-card ul {
+            margin: 0 1rem 1rem;
+            padding-left: 1.5rem;
+            color: #34495e;
+        }
+
+        .button {
+            display: inline-block;
+            padding: 0.8rem 1.5rem;
+            margin: 1rem;
+            background-color: #2c3e50;
+            color: #fff;
+            text-decoration: none;
+            border-radius: 4px;
+            transition: background-color 0.3s ease;
+        }
+
+        .button:hover {
+            background-color: #34495e;
+        }
+
+        @media (max-width: 600px) {
+            .candidate-list {
+                flex-direction: column; /* Stack candidates on small screens */
+            }
+            .container {
+                margin: 1rem;
+                padding: 1.5rem;
+            }
+            h1 {
+                font-size: 2rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Welcome, {{ user[1] }} {{ user[2] }}</h1>
+        {% if user[7] == 0 %}
+            <p>You have not voted yet. Please select a candidate to vote:</p>
+            <div class="candidate-list">
+                {% for candidate in candidates %}
+                <div class="candidate-card">
+                    <img src="{{ url_for('static', filename='images/candidate_photos/' + candidate[3]) }}" alt="{{ candidate[1] }}">
+                    <h2>{{ candidate[1] }}</h2>
+                    <p>Party: {{ candidate[2] }}</p>
+                    <h3>Promises:</h3>
+                    <ul>
+                        {% for promise in candidate[4].split('\n') %}
+                        <li>{{ promise }}</li>
+                        {% endfor %}
+                    </ul>
+                    <a href="{{ url_for('candidate_detail', candidate_id=candidate[0]) }}" class="button">View Details</a>
+                </div>
+                {% endfor %}
+            </div>
+        {% else %}
+            <p>You have already voted. Thank you for participating in the election!</p>
+        {% endif %}
+    </div>
+</body>
+</html>

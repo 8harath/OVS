@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Vote Confirmation</title>
+    <style>
+        body {
+            font-family: 'Arial', sans-serif;
+            line-height: 1.6;
+            color: #333; /* Dark Gray */
+            margin: 0;
+            padding: 0;
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            background-color: #f0f0f0; /* Light Gray */
+        }
+
+        .container {
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 2rem;
+            background-color: rgba(255, 255, 255, 0.9); /* White with transparency */
+            border-radius: 10px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            text-align: center;
+            position: relative;
+            z-index: 1;
+        }
+
+        h1 {
+            font-size: 2.5rem;
+            margin-bottom: 1.5rem;
+            color: #2c3e50; /* Dark Blue */
+        }
+
+        .confirmation-message {
+            margin-bottom: 2rem;
+        }
+
+        .confirmation-message p {
+            margin-bottom: 1rem;
+        }
+
+        .reference-number {
+            font-size: 1.2rem;
+            font-weight: bold;
+            color: #2980b9; /* Bright Blue */
+            padding: 0.5rem 1rem;
+            background-color: #ecf0f1; /* Light Gray */
+            border-radius: 5px;
+            display: inline-block;
+        }
+
+        .button {
+            display: inline-block;
+            padding: 0.8rem 1.5rem;
+            background-color: #2c3e50; /* Dark Blue */
+            color: #fff; /* White */
+            text-decoration: none;
+            border-radius: 5px;
+        }
+
+        .button:hover {
+            background-color: #34495e; /* Slate Blue */
+        }
+
+        @media (max-width: 600px) {
+            .container {
+                padding: 1rem;
+                margin: 1rem;
+            }
+
+            h1 {
+                font-size: 2rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Thank You for Voting!</h1>
+        <div class="confirmation-message">
+            <p>Your vote has been successfully recorded.</p>
+            <p>Your vote reference number is:</p>
+            <p class="reference-number">{{ reference_number }}</p>
+            <p>Please keep this reference number for any future inquiries.</p>
+        </div>
+        <a href="{{ url_for('dashboard') }}" class="button">Return to Dashboard</a>
+    </div>
+</body>
+</html>
