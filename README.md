@@ -21,7 +21,7 @@ To set up and run the project locally, follow these steps:
 2. Create a virtual environment and activate it:
    ```
    python -m venv venv
-   source venv/bin/activate  # On Windows, use `venv\Scripts\activate`
+   venv\Scripts\activate
    ```
 
 3. Install the required dependencies:
