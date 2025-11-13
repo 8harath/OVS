@@ -1,79 +1,84 @@
-import sqlite3
-from sqlite3 import Error
+# database.py - Database initialization script
+"""
+This script initializes the database using SQLAlchemy ORM.
+It creates all tables and populates them with sample data.
+
+Note: The old raw SQL implementation has been replaced with SQLAlchemy ORM.
+All database operations now use the models defined in models.py
+"""
+
 import os
-
-def create_connection():
-    conn = None
-    try:
-        # Get the absolute path to the database file
-        db_path = os.path.abspath(os.path.join(os.path.dirname(__file__), 'database', 'voting_system.db'))
-        
-        # Ensure the directory exists
-        os.makedirs(os.path.dirname(db_path), exist_ok=True)
-        
-        print(f"Attempting to connect to database at: {db_path}")  # Debug print
-        conn = sqlite3.connect(db_path)
-        print(f"Successfully connected to the database at {db_path}")
-        return conn
-    except Error as e:
-        print(f"Error connecting to the database: {e}")
-        print(f"Current working directory: {os.getcwd()}")  # Debug print
-        print(f"Directory contents: {os.listdir()}")  # Debug print
-    return conn
-
-def create_table(conn, create_table_sql):
-    try:
-        c = conn.cursor()
-        c.execute(create_table_sql)
-    except Error as e:
-        print(f"Error creating table: {e}")
+import sys
+from app import create_app
+from models import db
+from utils import create_sample_data, logger
 
 def init_db():
-    database = r"database/voting_system.db"
+    """Initialize database with tables and sample data"""
+    # Create app instance
+    app = create_app()
 
-    sql_create_voters_table = """ CREATE TABLE IF NOT EXISTS voters (
-                                    id integer PRIMARY KEY,
-                                    name text NOT NULL,
-                                    last_name text NOT NULL,
-                                    date_of_birth text NOT NULL,
-                                    phone_number text NOT NULL,
-                                    voter_id text NOT NULL UNIQUE,
-                                    password text NOT NULL,
-                                    has_voted integer DEFAULT 0
-                                ); """
+    with app.app_context():
+        try:
+            # Create all tables
+            db.create_all()
+            logger.info("Database tables created successfully")
 
-    sql_create_candidates_table = """CREATE TABLE IF NOT EXISTS candidates (
-                                    id integer PRIMARY KEY,
-                                    name text NOT NULL,
-                                    party text NOT NULL,
-                                    photo_url text NOT NULL,
-                                    promises text NOT NULL,
-                                    assets text NOT NULL,
-                                    liabilities text NOT NULL,
-                                    background text NOT NULL,
-                                    political_views text NOT NULL,
-                                    regional_views text NOT NULL
-                                );"""
+            # Create sample data (admin user, candidates, elections)
+            create_sample_data(db)
+            logger.info("Sample data created successfully")
 
-    sql_create_votes_table = """CREATE TABLE IF NOT EXISTS votes (
-                                id integer PRIMARY KEY,
-                                voter_id integer NOT NULL,
-                                candidate_id integer NOT NULL,
-                                timestamp text NOT NULL,
-                                reference_number text NOT NULL UNIQUE,
-                                FOREIGN KEY (voter_id) REFERENCES voters (id),
-                                FOREIGN KEY (candidate_id) REFERENCES candidates (id)
-                            );"""
+            print("✓ Database initialized successfully!")
+            print(f"✓ Database location: {app.config['SQLALCHEMY_DATABASE_URI']}")
+            print("\nDefault admin credentials:")
+            print(f"  Voter ID: ADMIN001")
+            print(f"  Password: {app.config.get('ADMIN_PASSWORD', 'Admin@123')}")
+            print("\nYou can now run the application with: python app.py")
 
-    conn = create_connection()
+        except Exception as e:
+            logger.error(f"Error initializing database: {e}")
+            print(f"✗ Error initializing database: {e}")
+            sys.exit(1)
 
-    if conn is not None:
-        create_table(conn, sql_create_voters_table)
-        create_table(conn, sql_create_candidates_table)
-        create_table(conn, sql_create_votes_table)
-        conn.close()
-    else:
-        print("Error! Cannot create the database connection.")
+def reset_db():
+    """Drop all tables and reinitialize database"""
+    app = create_app()
+
+    with app.app_context():
+        try:
+            # Drop all tables
+            db.drop_all()
+            logger.info("All tables dropped")
+            print("✓ Database reset - all tables dropped")
+
+            # Recreate tables
+            db.create_all()
+            logger.info("Database tables recreated")
+
+            # Create sample data
+            create_sample_data(db)
+            logger.info("Sample data created")
+
+            print("✓ Database reset complete!")
+
+        except Exception as e:
+            logger.error(f"Error resetting database: {e}")
+            print(f"✗ Error resetting database: {e}")
+            sys.exit(1)
 
 if __name__ == '__main__':
-    init_db()
+    import argparse
+
+    parser = argparse.ArgumentParser(description='Database management script')
+    parser.add_argument('--reset', action='store_true',
+                       help='Drop all tables and reinitialize database')
+    args = parser.parse_args()
+
+    if args.reset:
+        confirm = input("Are you sure you want to reset the database? All data will be lost! (yes/no): ")
+        if confirm.lower() == 'yes':
+            reset_db()
+        else:
+            print("Database reset cancelled.")
+    else:
+        init_db()

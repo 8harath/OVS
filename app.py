@@ -1,159 +1,125 @@
-from flask import Flask, render_template, request, redirect, url_for, flash, session
-from werkzeug.security import generate_password_hash, check_password_hash
-import sqlite3
-from database import create_connection
-from models import Voter, Candidate, Vote
-import uuid
+# app.py - Main Application File
+import os
+from flask import Flask, render_template
+from flask_login import LoginManager
+from flask_limiter import Limiter
+from flask_limiter.util import get_remote_address
+from config import config
+from models import db, Voter
+from utils import mail, create_sample_data, logger
 from datetime import datetime
 
-app = Flask(__name__)
-app.secret_key = 'your_secret_key'  # Change this to a random secret key
+# Import blueprints
+from blueprints.auth import auth_bp
+from blueprints.main import main_bp
+from blueprints.admin import admin_bp
+from blueprints.api import api_bp
 
-@app.route('/')
-def index():
-    return render_template('index.html')
+def create_app(config_name=None):
+    """Application factory pattern"""
+    app = Flask(__name__)
 
-@app.route('/login', methods=['GET', 'POST'])
-def login():
-    if request.method == 'POST':
-        voter_id = request.form['voter_id']
-        password = request.form['password']
-        
-        conn = create_connection()
-        cur = conn.cursor()
-        cur.execute("SELECT * FROM voters WHERE voter_id = ?", (voter_id,))
-        user = cur.fetchone()
-        conn.close()
+    # Load configuration
+    if config_name is None:
+        config_name = os.environ.get('FLASK_ENV', 'development')
 
-        if user and check_password_hash(user[6], password):
-            session['user_id'] = user[0]
-            return redirect(url_for('dashboard'))
-        else:
-            flash('Invalid credentials', 'error')
-    
-    return render_template('login.html')
+    app.config.from_object(config[config_name])
 
-@app.route('/register', methods=['GET', 'POST'])
-def register():
-    if request.method == 'POST':
-        name = request.form['name']
-        last_name = request.form['last_name']
-        date_of_birth = request.form['date_of_birth']
-        phone_number = request.form['phone_number']
-        voter_id = request.form['voter_id']
-        password = request.form['password']
+    # Initialize extensions
+    db.init_app(app)
+    mail.init_app(app)
 
-        conn = create_connection()
-        cur = conn.cursor()
-        cur.execute("SELECT * FROM voters WHERE voter_id = ?", (voter_id,))
-        existing_user = cur.fetchone()
+    # Setup Flask-Login
+    login_manager = LoginManager()
+    login_manager.init_app(app)
+    login_manager.login_view = 'auth.login'
+    login_manager.login_message = 'Please log in to access this page.'
+    login_manager.login_message_category = 'info'
 
-        if existing_user:
-            flash('Voter ID already exists', 'error')
-        else:
-            hashed_password = generate_password_hash(password)
-            cur.execute("INSERT INTO voters (name, last_name, date_of_birth, phone_number, voter_id, password) VALUES (?, ?, ?, ?, ?, ?)",
-                        (name, last_name, date_of_birth, phone_number, voter_id, hashed_password))
-            conn.commit()
-            flash('Registration successful', 'success')
-            return redirect(url_for('login'))
+    @login_manager.user_loader
+    def load_user(user_id):
+        return Voter.query.get(int(user_id))
 
-        conn.close()
+    # Setup Flask-Limiter
+    limiter = Limiter(
+        app=app,
+        key_func=get_remote_address,
+        default_limits=["200 per day", "50 per hour"],
+        storage_uri=app.config['RATELIMIT_STORAGE_URL']
+    )
 
-    return render_template('register.html')
+    # Apply rate limiting to auth routes
+    limiter.limit("5 per minute")(auth_bp)
 
-@app.route('/dashboard')
-def dashboard():
-    if 'user_id' not in session:
-        return redirect(url_for('login'))
+    # Register blueprints
+    app.register_blueprint(auth_bp)
+    app.register_blueprint(main_bp)
+    app.register_blueprint(admin_bp)
+    app.register_blueprint(api_bp)
 
-    conn = create_connection()
-    if conn is None:
-        flash('Error connecting to the database', 'error')
-        return redirect(url_for('index'))
+    # Create database tables and sample data
+    with app.app_context():
+        db.create_all()
+        create_sample_data(db)
+        logger.info("Database initialized successfully")
 
-    try:
-        cur = conn.cursor()
-        cur.execute("SELECT * FROM voters WHERE id = ?", (session['user_id'],))
-        user = cur.fetchone()
+    # Template context processors
+    @app.context_processor
+    def inject_now():
+        return {'now': datetime.utcnow()}
 
-        cur.execute("SELECT * FROM candidates")
-        candidates = cur.fetchall()
+    @app.context_processor
+    def inject_config():
+        return {'config': app.config}
 
-        if not candidates:
-            # If no candidates are found, add so
-            # me sample candidates
-            sample_candidates = [
-                ('John Doe', 'Party 1', 'john_doe.jpg', 'Promise 1\nPromise 2', 'Assets info', 'Liabilities info', 'Background info', 'Political views', 'Regional views'),
-                ('Jane Smith', 'Party B', 'jane_smith.jpg', 'Promise 1\nPromise 2', 'Assets info', 'Liabilities info', 'Background info', 'Political views', 'Regional views'),
-            ]
-            cur.executemany("""
-                INSERT INTO candidates (name, party, photo_url, promises, assets, liabilities, background, political_views, regional_views)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-            """, sample_candidates)
-            conn.commit()
-            
-            # Fetch the newly added candidates
-            cur.execute("SELECT * FROM candidates")
-            candidates = cur.fetchall()
+    # Error handlers
+    @app.errorhandler(404)
+    def not_found_error(error):
+        return render_template('errors/404.html'), 404
 
-        return render_template('dashboard.html', user=user, candidates=candidates)
-    except sqlite3.Error as e:
-        flash(f'An error occurred: {str(e)}', 'error')
-        return redirect(url_for('index'))
-    finally:
-        conn.close()
+    @app.errorhandler(403)
+    def forbidden_error(error):
+        return render_template('errors/403.html'), 403
 
-@app.route('/candidate/<int:candidate_id>')
-def candidate_detail(candidate_id):
-    if 'user_id' not in session:
-        return redirect(url_for('login'))
+    @app.errorhandler(500)
+    def internal_error(error):
+        db.session.rollback()
+        logger.error(f'Internal server error: {error}')
+        return render_template('errors/500.html'), 500
 
-    conn = create_connection()
-    cur = conn.cursor()
-    cur.execute("SELECT * FROM candidates WHERE id = ?", (candidate_id,))
-    candidate = cur.fetchone()
-    conn.close()
+    @app.errorhandler(429)
+    def ratelimit_handler(error):
+        return render_template('errors/429.html'), 429
 
-    return render_template('candidate_detail.html', candidate=candidate)
+    # Shell context for flask shell
+    @app.shell_context_processor
+    def make_shell_context():
+        from models import Voter, Candidate, Vote, Election, Announcement
+        return {
+            'db': db,
+            'Voter': Voter,
+            'Candidate': Candidate,
+            'Vote': Vote,
+            'Election': Election,
+            'Announcement': Announcement
+        }
 
-@app.route('/vote/<int:candidate_id>', methods=['POST'])
-def vote(candidate_id):
-    if 'user_id' not in session:
-        return redirect(url_for('login'))
+    # Create upload directories
+    os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
+    os.makedirs(os.path.join(app.config['UPLOAD_FOLDER'], 'candidates'), exist_ok=True)
+    os.makedirs(os.path.join(app.config['UPLOAD_FOLDER'], 'id_documents'), exist_ok=True)
 
-    conn = create_connection()
-    cur = conn.cursor()
-    cur.execute("SELECT has_voted FROM voters WHERE id = ?", (session['user_id'],))
-    has_voted = cur.fetchone()[0]
+    logger.info(f"Application started in {config_name} mode")
 
-    if has_voted:
-        flash('You have already voted', 'error')
-        return redirect(url_for('dashboard'))
+    return app
 
-    reference_number = str(uuid.uuid4())
-    timestamp = datetime.now().isoformat()
-
-    cur.execute("INSERT INTO votes (voter_id, candidate_id, timestamp, reference_number) VALUES (?, ?, ?, ?)",
-                (session['user_id'], candidate_id, timestamp, reference_number))
-    cur.execute("UPDATE voters SET has_voted = 1 WHERE id = ?", (session['user_id'],))
-    conn.commit()
-    conn.close()
-
-    flash(f'Thank you for voting! Your reference number is {reference_number}', 'success')
-    return redirect(url_for('vote_confirmation', reference_number=reference_number))
-
-@app.route('/vote_confirmation/<reference_number>')
-def vote_confirmation(reference_number):
-    if 'user_id' not in session:
-        return redirect(url_for('login'))
-
-    return render_template('vote_confirmation.html', reference_number=reference_number)
-
-@app.route('/logout')
-def logout():
-    session.pop('user_id', None)
-    return redirect(url_for('index'))
+# Create the application instance
+app = create_app()
 
 if __name__ == '__main__':
-    app.run(debug=True)
+    # Only run with debug mode from environment variable
+    app.run(
+        host='0.0.0.0',
+        port=int(os.environ.get('PORT', 5000)),
+        debug=app.config['DEBUG']
+    )
