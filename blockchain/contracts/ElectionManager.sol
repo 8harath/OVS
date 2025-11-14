@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.19;
+pragma solidity ^0.8.20;
 
 import "@openzeppelin/contracts/access/Ownable.sol";
 
@@ -38,6 +38,11 @@ contract ElectionManager is Ownable {
     event ElectionActivated(uint256 indexed electionId, uint256 timestamp);
     event ElectionDeactivated(uint256 indexed electionId, uint256 timestamp);
     event ElectionUpdated(uint256 indexed electionId, string title);
+
+    /**
+     * @dev Constructor - sets the contract deployer as the initial owner
+     */
+    constructor() Ownable(msg.sender) {}
 
     /**
      * @dev Create a new election on the blockchain

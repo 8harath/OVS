@@ -65,6 +65,23 @@ class Config:
     ADMIN_EMAIL = os.environ.get('ADMIN_EMAIL', 'admin@votingsystem.com')
     ADMIN_PASSWORD = os.environ.get('ADMIN_PASSWORD', 'admin123')  # Change this!
 
+    # Blockchain Configuration (Phase 1)
+    BLOCKCHAIN_ENABLED = os.environ.get('BLOCKCHAIN_ENABLED', 'False').lower() == 'true'
+    BLOCKCHAIN_NETWORK = os.environ.get('BLOCKCHAIN_NETWORK', 'mumbai')  # mumbai or polygon
+    MUMBAI_RPC_URL = os.environ.get('MUMBAI_RPC_URL', '')
+    POLYGON_RPC_URL = os.environ.get('POLYGON_RPC_URL', '')
+    BLOCKCHAIN_PRIVATE_KEY = os.environ.get('BLOCKCHAIN_PRIVATE_KEY', '')
+
+    # Contract addresses (set after deployment)
+    VOTE_REGISTRY_ADDRESS = os.environ.get('VOTE_REGISTRY_ADDRESS', '')
+    ELECTION_MANAGER_ADDRESS = os.environ.get('ELECTION_MANAGER_ADDRESS', '')
+    VOTER_REGISTRY_ADDRESS = os.environ.get('VOTER_REGISTRY_ADDRESS', '')
+
+    # Blockchain behavior
+    BLOCKCHAIN_ASYNC = os.environ.get('BLOCKCHAIN_ASYNC', 'False').lower() == 'true'
+    BLOCKCHAIN_FAIL_GRACEFULLY = os.environ.get('BLOCKCHAIN_FAIL_GRACEFULLY', 'True').lower() == 'true'
+    BLOCKCHAIN_BATCH_SIZE = int(os.environ.get('BLOCKCHAIN_BATCH_SIZE', 50))
+
 class DevelopmentConfig(Config):
     """Development configuration"""
     DEBUG = True

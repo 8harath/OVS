@@ -1,9 +1,9 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.19;
+pragma solidity ^0.8.20;
 
 import "@openzeppelin/contracts/access/Ownable.sol";
-import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
-import "@openzeppelin/contracts/security/Pausable.sol";
+import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
+import "@openzeppelin/contracts/utils/Pausable.sol";
 
 /**
  * @title VoteRegistry
@@ -46,6 +46,11 @@ contract VoteRegistry is Ownable, ReentrancyGuard, Pausable {
         uint256 batchSize,
         uint256 indexed electionId
     );
+
+    /**
+     * @dev Constructor - sets the contract deployer as the initial owner
+     */
+    constructor() Ownable(msg.sender) {}
 
     /**
      * @dev Record a single vote on the blockchain

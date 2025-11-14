@@ -142,3 +142,88 @@ class Announcement(db.Model):
         return f'<Announcement {self.title}>'
 
 from datetime import timedelta
+
+# ==============================================================================
+# Blockchain Integration Models (Phase 1)
+# ==============================================================================
+
+class BlockchainVote(db.Model):
+    """Links traditional votes with blockchain transactions for immutability verification"""
+    __tablename__ = 'blockchain_votes'
+
+    id = db.Column(db.Integer, primary_key=True)
+    vote_id = db.Column(db.Integer, db.ForeignKey('votes.id', ondelete='CASCADE'), nullable=False, unique=True)
+    vote_hash = db.Column(db.String(66), nullable=False)  # Cryptographic hash of vote
+    transaction_hash = db.Column(db.String(66), unique=True, nullable=False, index=True)  # Blockchain tx hash
+    block_number = db.Column(db.Integer, nullable=False)  # Block where vote was recorded
+    blockchain_timestamp = db.Column(db.DateTime, nullable=False)  # Block timestamp
+    gas_used = db.Column(db.Integer, nullable=True)  # Gas consumed
+    status = db.Column(db.String(20), default='confirmed')  # confirmed, pending, failed
+    recorded_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+    # Relationship
+    vote = db.relationship('Vote', backref=db.backref('blockchain_record', uselist=False, cascade='all, delete-orphan'))
+
+    def __repr__(self):
+        return f'<BlockchainVote vote_id={self.vote_id} tx={self.transaction_hash[:10]}...>'
+
+class BlockchainElection(db.Model):
+    """Links traditional elections with blockchain election contracts"""
+    __tablename__ = 'blockchain_elections'
+
+    id = db.Column(db.Integer, primary_key=True)
+    election_id = db.Column(db.Integer, db.ForeignKey('elections.id', ondelete='CASCADE'), nullable=False, unique=True)
+    blockchain_election_id = db.Column(db.Integer, nullable=False)  # ID on blockchain
+    contract_address = db.Column(db.String(42), nullable=False, index=True)  # Ethereum address format
+    creation_tx_hash = db.Column(db.String(66), nullable=False)
+    is_active_on_chain = db.Column(db.Boolean, default=False)
+    activation_tx_hash = db.Column(db.String(66), nullable=True)
+    deactivation_tx_hash = db.Column(db.String(66), nullable=True)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    # Relationship
+    election = db.relationship('Election', backref=db.backref('blockchain_record', uselist=False))
+
+    def __repr__(self):
+        return f'<BlockchainElection election_id={self.election_id} contract={self.contract_address[:10]}...>'
+
+class BlockchainTransaction(db.Model):
+    """Comprehensive log of all blockchain transactions for audit trail"""
+    __tablename__ = 'blockchain_transactions'
+
+    id = db.Column(db.Integer, primary_key=True)
+    transaction_hash = db.Column(db.String(66), unique=True, nullable=False, index=True)
+    transaction_type = db.Column(db.String(50), nullable=False)  # vote_record, election_create, voter_register, etc.
+    from_address = db.Column(db.String(42), nullable=False)  # Sender wallet
+    to_address = db.Column(db.String(42), nullable=False)  # Contract address
+    block_number = db.Column(db.Integer, nullable=False, index=True)
+    gas_used = db.Column(db.Integer, nullable=True)
+    gas_price = db.Column(db.BigInteger, nullable=True)  # in wei
+    status = db.Column(db.String(20), default='pending')  # pending, confirmed, failed
+    error_message = db.Column(db.Text, nullable=True)  # If transaction failed
+    retry_count = db.Column(db.Integer, default=0)
+    metadata = db.Column(db.JSON, nullable=True)  # Additional transaction data
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    confirmed_at = db.Column(db.DateTime, nullable=True)
+
+    def __repr__(self):
+        return f'<BlockchainTransaction {self.transaction_type} tx={self.transaction_hash[:10]}...>'
+
+class BlockchainSyncStatus(db.Model):
+    """Track synchronization status between local DB and blockchain"""
+    __tablename__ = 'blockchain_sync_status'
+
+    id = db.Column(db.Integer, primary_key=True)
+    last_synced_block = db.Column(db.Integer, nullable=False, default=0)
+    total_votes_on_chain = db.Column(db.Integer, default=0)
+    total_votes_in_db = db.Column(db.Integer, default=0)
+    sync_status = db.Column(db.String(20), default='in_sync')  # in_sync, syncing, out_of_sync, error
+    last_sync_time = db.Column(db.DateTime, nullable=True)
+    next_sync_time = db.Column(db.DateTime, nullable=True)
+    error_count = db.Column(db.Integer, default=0)
+    last_error = db.Column(db.Text, nullable=True)
+    network = db.Column(db.String(20), default='mumbai')  # mumbai, polygon
+
+    def __repr__(self):
+        return f'<BlockchainSyncStatus network={self.network} status={self.sync_status}>'

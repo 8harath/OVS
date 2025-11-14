@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.19;
+pragma solidity ^0.8.20;
 
 import "@openzeppelin/contracts/access/Ownable.sol";
 
@@ -27,6 +27,11 @@ contract VoterRegistry is Ownable {
     event VoterRemoved(address indexed voter);
     event VoteCast(address indexed voter, uint256 indexed electionId, uint256 timestamp);
     event VotersRegisteredBatch(uint256 count);
+
+    /**
+     * @dev Constructor - sets the contract deployer as the initial owner
+     */
+    constructor() Ownable(msg.sender) {}
 
     /**
      * @dev Register a voter as eligible
