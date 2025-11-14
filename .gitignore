@@ -76,3 +76,14 @@ Thumbs.db
 *.swp
 name_votes.txt
 sqlite3_command.txt
+
+# Node.js
+node_modules/
+blockchain/node_modules/
+
+# Blockchain build artifacts
+blockchain/artifacts/
+blockchain/cache/
+
+# Blockchain deployments (may contain sensitive data)
+blockchain/deployments/
